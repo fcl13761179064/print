@@ -1,0 +1,29 @@
+{
+  "name": "my-print",
+  "id": "my-print",
+  "version": "1.0.0",
+  "description": "执法局海康蓝牙打印插件",
+  "_dp_type": "nativeplugin",
+  "_dp_nativeplugin": {
+    "android": {
+      "plugins": [
+        {
+          "type": "module",
+          "name": "my-print",
+          "class": "com.programe.print.PrintUtils"
+        }
+      ],
+      "integrateType": "aar",
+      "minSdkVersion": 26,
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.BLUETOOTH_SCAN"
+      ]
+    }
+  }
+}
+
