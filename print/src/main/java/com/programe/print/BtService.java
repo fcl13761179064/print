@@ -41,10 +41,7 @@ public class BtService extends IntentService {
 
         if (intent.getAction().equals(PrintUtil.ACTION_PRINT_TEST)) {
             String data = intent.getStringExtra("PRINT_DATA");
-            String sealBase64 = intent.getStringExtra("SEAL_DATA");
-            // 如果外部没传印章数据，这里可以由业务决定是否给个默认值
-            Log.d("BtService", "收到打印请求");
-            printTest(data, sealBase64);
+            printTest(data);
         } else if (intent.getAction().equals(PrintUtil.ACTION_PRINT_TEST_TWO)) {
             printTesttwo(3);
         } else if (intent.getAction().equals(PrintUtil.ACTION_PRINT_BITMAP)) {
@@ -55,7 +52,7 @@ public class BtService extends IntentService {
         }
     }
 
-    private void printTest(String data, String sealBase64) {
+    private void printTest(String data) {
         Log.d("BtService", "========= printTest 开始 =========");
         PrintOrderDataMaker printOrderDataMaker = new PrintOrderDataMaker(this, data, PrinterWriter58mm.TYPE_58, PrinterWriter.HEIGHT_PARTING_DEFAULT);
         
@@ -64,10 +61,6 @@ public class BtService extends IntentService {
         if (assetsSeal != null) {
             printOrderDataMaker.setSealBitmap(assetsSeal);
             Log.d("BtService", "已采用 assets 中的 gaizhang.png 作为印章");
-        } else if (sealBase64 != null && !sealBase64.isEmpty()) {
-            // 2. 否则采用传入的 Base64
-            printOrderDataMaker.setSealBase64(sealBase64);
-            Log.d("BtService", "已采用传入的 Base64 数据作为印章");
         }
         
         ArrayList<byte[]> printData = (ArrayList<byte[]>) printOrderDataMaker.getPrintData(PrinterWriter58mm.TYPE_58);
