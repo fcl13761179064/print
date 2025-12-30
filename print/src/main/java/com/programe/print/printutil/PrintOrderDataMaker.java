@@ -5,6 +5,8 @@ import com.blankj.utilcode.util.GsonUtils;
 import com.programe.print.Base64PrintUtils;
 import com.programe.print.PrintBeans;
 import com.programe.print.R;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +16,7 @@ public class PrintOrderDataMaker implements PrintDataMaker {
     private int width;
     private int height;
     Context btService;
+    private String remark = "微点筷客推出了餐厅管理系统，可用手机快速接单（来自客户的预订订单），进行订单管理、后厨管理等管理餐厅。";
     private String sealBase64;
     private android.graphics.Bitmap sealBitmap;
 
@@ -82,39 +85,32 @@ public class PrintOrderDataMaker implements PrintDataMaker {
             printer.printLineFeed();
             printer.print("违法行为：" + printBeans.getBehavior());
             printer.printLineFeed();
-            printer.print("危害后果：" + printBeans.getHazard());
-            printer.printLineFeed();
-            printer.print("罚款数额：" + printBeans.getPenalty_amount());
-            printer.printLineFeed();
-            // Payment info - normally printed now
-            printer.print("缴纳方式：" + printBeans.getPenalty_type());
-            printer.printLineFeed();
-            if (!printBeans.getPay_address().isEmpty()) {
-                printer.print("缴纳地点：" + printBeans.getPay_address());
-                printer.printLineFeed();
-            }
-            // Footer block (Remark + Seal)
-            // If seal is available, we synthesize the last part to achieve the overlay effect
+
+            // Start Synthesis Segment from "Illegal Behavior" to cover it with seal
             if (sealBitmap != null || (sealBase64 != null && !sealBase64.isEmpty())) {
                 data.add(printer.getDataAndReset()); // Flush preceding text
+
                 ArrayList<String> footerLines = new ArrayList<>();
+                footerLines.add("危害后果：" + printBeans.getHazard());
+                footerLines.add("罚款数额：" + printBeans.getPenalty_amount());
+                footerLines.add("缴纳方式：" + printBeans.getPenalty_type());
+                if (!printBeans.getPay_address().isEmpty()) {
+                    footerLines.add("缴纳地点：" + printBeans.getPay_address());
+                }
                 footerLines.add("备注（案由）：" + printBeans.getRemark());
                 footerLines.add("单位盖章 ：");
+
                 int printWidth = (type == PrinterWriter58mm.TYPE_58) ? 384 : 576;
                 android.graphics.Bitmap compositeBitmap;
                 if (sealBitmap != null) {
                     compositeBitmap = Base64PrintUtils.INSTANCE.compositeSealWithMultiLines(footerLines, sealBitmap, printWidth);
                 } else {
-                    compositeBitmap = Base64PrintUtils.INSTANCE.compositeSealWithText(footerLines.get(0), sealBase64, printWidth); // Fallback to single line if only base64 provided and old method used
-                    // Actually I should update my implementation to use multiline even for base64
-                }
-
-                // Re-implementation check: compositeSealWithText already calls compositeSealWithMultiLines now
-                if (sealBitmap == null && sealBase64 != null) {
-                     android.graphics.Bitmap base64SealBitmap = Base64PrintUtils.INSTANCE.getSealBitmap(sealBase64);
-                     if (base64SealBitmap != null) {
-                         compositeBitmap = Base64PrintUtils.INSTANCE.compositeSealWithMultiLines(footerLines, base64SealBitmap, printWidth);
-                     }
+                    android.graphics.Bitmap base64SealBitmap = Base64PrintUtils.INSTANCE.getSealBitmap(sealBase64);
+                    if (base64SealBitmap != null) {
+                        compositeBitmap = Base64PrintUtils.INSTANCE.compositeSealWithMultiLines(footerLines, base64SealBitmap, printWidth);
+                    } else {
+                        compositeBitmap = null;
+                    }
                 }
 
                 if (compositeBitmap != null) {
@@ -123,17 +119,10 @@ public class PrintOrderDataMaker implements PrintDataMaker {
                         data.addAll(imageBytes);
                     }
                 } else {
-                    // Fallback to normal printing if synthesis fails
-                    printer.print("备注（案由）：" + printBeans.getRemark());
-                    printer.printLineFeed();
-                    printer.print("单位盖章 ：");
-                    printer.printLineFeed();
+                    renderManualFooter(printer, printBeans);
                 }
             } else {
-                printer.print("备注（案由）：" + printBeans.getRemark());
-                printer.printLineFeed();
-                printer.print("单位盖章 ：");
-                printer.printLineFeed();
+                renderManualFooter(printer, printBeans);
             }
 
             data.add(printer.getDataAndClose());
@@ -141,5 +130,22 @@ public class PrintOrderDataMaker implements PrintDataMaker {
         } catch (Exception e) {
             return new ArrayList<>();
         }
+    }
+
+    private void renderManualFooter(PrinterWriter printer, PrintBeans printBeans) throws IOException {
+        printer.print("危害后果：" + printBeans.getHazard());
+        printer.printLineFeed();
+        printer.print("罚款数额：" + printBeans.getPenalty_amount());
+        printer.printLineFeed();
+        printer.print("缴纳方式：" + printBeans.getPenalty_type());
+        printer.printLineFeed();
+        if (!printBeans.getPay_address().isEmpty()) {
+            printer.print("缴纳地点：" + printBeans.getPay_address());
+            printer.printLineFeed();
+        }
+        printer.print("备注（案由）：" + printBeans.getRemark());
+        printer.printLineFeed();
+        printer.print("单位盖章 ：");
+        printer.printLineFeed();
     }
 }
