@@ -26,13 +26,22 @@ public class PrintOrderDataMaker implements PrintDataMaker {
     private int height;
     Context btService;
     private String remark = "微点筷客推出了餐厅管理系统，可用手机快速接单（来自客户的预订订单），进行订单管理、后厨管理等管理餐厅。";
-
+    private String sealBase64;
+    private android.graphics.Bitmap sealBitmap;
 
     public PrintOrderDataMaker( Context btService, String qr, int width, int height) {
         this.qr = qr;
         this.width = width;
         this.height = height;
         this.btService = btService;
+    }
+
+    public void setSealBase64(String sealBase64) {
+        this.sealBase64 = sealBase64;
+    }
+
+    public void setSealBitmap(android.graphics.Bitmap sealBitmap) {
+        this.sealBitmap = sealBitmap;
     }
 
 
@@ -92,8 +101,32 @@ public class PrintOrderDataMaker implements PrintDataMaker {
             printer.printLineFeed();
             printer.print("罚款数额：" + printBeans.getPenalty_amount());
             printer.printLineFeed();
-            printer.print("缴纳方式：" + printBeans.getPenalty_type());
-            printer.printLineFeed();
+            
+            String penaltyInfo = "缴纳方式：" + printBeans.getPenalty_type();
+            if (sealBitmap != null || (sealBase64 != null && !sealBase64.isEmpty())) {
+                // 使用合成图打印
+                android.graphics.Bitmap compositeBitmap;
+                if (sealBitmap != null) {
+                    compositeBitmap = com.programe.print.Base64PrintUtils.INSTANCE.compositeSealWithText(penaltyInfo, sealBitmap, width == PrinterWriter58mm.TYPE_58 ? 384 : 576);
+                } else {
+                    compositeBitmap = com.programe.print.Base64PrintUtils.INSTANCE.compositeSealWithText(penaltyInfo, sealBase64, width == PrinterWriter58mm.TYPE_58 ? 384 : 576);
+                }
+
+                if (compositeBitmap != null) {
+                    data.add(printer.getDataAndReset()); // 先把之前的文字数据取出
+                    ArrayList<byte[]> imageBytes = printer.getImageByte(compositeBitmap);
+                    if (imageBytes != null) {
+                        data.addAll(imageBytes);
+                    }
+                } else {
+                    printer.print(penaltyInfo);
+                    printer.printLineFeed();
+                }
+            } else {
+                printer.print(penaltyInfo);
+                printer.printLineFeed();
+            }
+
             if (!printBeans.getPay_address().isBlank()){
                 printer.print("缴纳地点：" + printBeans.getPay_address());
                 printer.printLineFeed(); // 现在才换行
